@@ -83,15 +83,12 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-
 	for (i = 1; i < 10001; i++) {
 
 		strcpy(rpc_creds_file,
 		       "/media/user/c2a5aa0e-7fd6-4bbf-8637-cc47ea80b855/"
 		       "monero-cli/monero-x86_64-linux-gnu-v0.17.3.0/monero-wallet-rpc.18083"
 		       ".login");
-
-
 
 		getaddress(rpc_creds_file);
 
@@ -118,16 +115,13 @@ int main(int argc, char *argv[])
 			sqlite3_close(db);
 			return 1;
 		}
-
 	}
-
 	sqlite3_close(db);
 	return (0);
 }
 
 int isRpcWorking()
 {
-
 	FILE *fp;
 	char buffer[1024];
 
@@ -197,7 +191,6 @@ int getaddress(char *rpc_creds)
 	       "\\\"}\"\'}\' -H \'Content-Type: application/json\' >"
 	       " /dev/shm/result.json");
 
-
 	if (system(curlcommand))
 		exit(1);
 
@@ -229,17 +222,14 @@ char *randstring(int length)
 				int key = rand() % (int)(sizeof(charset) - 1);
 				randomString[n] = charset[key];
 			}
-
 			randomString[length] = '\0';
 		}
 	}
-
 	return randomString;
 }
 
 int makeNewDir()
 {
-
 	char buffer[1024];
 
 	strcpy(buffer, randstring(32));
