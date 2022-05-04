@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
 		sqlite3_close(db);
 		return 1;
 	}
-//      if (system("clear")) exit(1);
+
 
 	for (i = 1; i < 10001; i++) {
 
@@ -91,12 +91,12 @@ int main(int argc, char *argv[])
 		       "monero-cli/monero-x86_64-linux-gnu-v0.17.3.0/monero-wallet-rpc.18083"
 		       ".login");
 
-//              printf("\nWorking on customer info set number %d \n\n", i);
+
 
 		getaddress(rpc_creds_file);
 
 		makeNewDir();
-//              printf("%s", "%s", "%s","%s", str, newDir, newPaymentId, newMoneroAddress);
+
 		strcpy(tempstring, "INSERT INTO UnusedPaymentData VALUES(");
 		sprintf(str, "%d", i);
 		strcat(tempstring, str);
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
 			sqlite3_close(db);
 			return 1;
 		}
-//      if (system("clear")) exit(1);
+
 	}
 
 	sqlite3_close(db);
@@ -196,8 +196,8 @@ int getaddress(char *rpc_creds)
 	strcat(curlcommand,
 	       "\\\"}\"\'}\' -H \'Content-Type: application/json\' >"
 	       " /dev/shm/result.json");
-//printf("\n%s\n\n", curlcommand);
-//exit (1);
+
+
 	if (system(curlcommand))
 		exit(1);
 
@@ -216,14 +216,13 @@ int getaddress(char *rpc_creds)
 }
 
 char *randstring(int length)
-{				// length should be qualified as const if you follow a rigorous standard
-
+{				
 	static char charset[] =
 	    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNPQRSTUVWXYZ123456789";
-	char *randomString;	// initializing to NULL isn't necessary as malloc() returns NULL if it couldn't allocate memory as requested
+	char *randomString;	
 
 	if (length) {
-		randomString = malloc(length + 1);	// I removed your `sizeof(char) * (length +1)` as sizeof(char) == 1, cf. C99
+		randomString = malloc(length + 1);
 
 		if (randomString) {
 			for (int n = 0; n < length; n++) {
