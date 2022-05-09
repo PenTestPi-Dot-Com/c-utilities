@@ -4,8 +4,10 @@ add_compile_options(
 	-Wall
 	-Wextra
 	-Wpedantic
-	-pie
-	-fpie
+	-O3
+	-m64
+	-mrdrnd
+	-s
 )
 
 project(play)
