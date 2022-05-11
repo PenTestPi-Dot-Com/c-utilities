@@ -8,6 +8,7 @@ add_compile_options(
 	-m64
 	-mrdrnd
 	-s
+	-std=gnu99
 )
 
 project(play)
