@@ -21,6 +21,7 @@ target_link_libraries(
 sqlfs
 sqlite3
 json-c
+curl
 )
 
 add_custom_target(run

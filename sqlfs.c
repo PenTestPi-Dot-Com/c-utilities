@@ -1,6 +1,6 @@
 
 /*
- * @returns The data needed for each sales attempt. 05/04/2022.
+ * @returns The data needed for each sales attempt. 05/11/2022.
  *
  * Dear Human and a Sphinx script:
  *
@@ -20,7 +20,11 @@
  *
  * Break a pinky.
  * 
- */
+ * P.S. There's more narative at the bottom in case you are into long, drawn-out pointless prose trying to explain
+ * poor coding practices and dubious structural decisions.
+ * 
+ *  
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,38 +33,69 @@
 #include <json-c/json.h>
 #include <sqlite3.h>
 #include <time.h>
-#include <immintrin.h>		// _rdrand64
+#include <immintrin.h>
+#include <curl/curl.h>
+#include <ctype.h>
 
 int isRpcWorking();
 int getaddress(char *, char *);
 int makeNewDir();
 int get_newPaymentId();
+int fetchIt(char[]);
 
+char curlItResult[1024];
 char newMoneroAddress[1024];
 char rpc_creds_file[1024];
 char newDir[1024];
 char newPaymentId[1024];
 
+struct string {
+  char *ptr;
+  size_t len;
+};
+
 int main(int argc, char *argv[])
 {
-	int i = 1;
+	FILE *fp;
+	unsigned short i;
 	sqlite3 *db;
 	char *err_msg = 0;
-
 	int rc = sqlite3_open("FutureTransactions.db", &db);
 	char *sql;
 	char tempstring[1024];
 	char str[10];
+	char buffer[1024];
+	struct json_object *parsed_json;
+	struct json_object *result;
+	struct json_object *address;
+	int numberOfAddresses = 10000;
 
-	srand(time(NULL));	// for /dev/urandom. Remove if native x86 call is used.
+	srand(time(NULL));
 
-	argv[0] = '\0';
-	if (argc != 1) {
-		fprintf(stderr, "%s\n",
-			"I don't take any arguments at this time. Try again by just running the "
-			"program.");
+	if (argc > 2) {
+		fprintf(stderr, "%s\n","I only take one number of new addresses as an argment for now. Try again.");
 		exit(1);
 	}
+
+	if (argc == 2) {
+		strcpy(tempstring, argv[1]);
+		i = 0;
+		while (tempstring[i] != '\0') {
+			if (!isdigit(tempstring[i])) {
+				puts("Argument has to be a number.");
+				exit(1);
+			}
+			i++;
+		}
+	
+		if ((strlen(tempstring)) > 5) {
+			puts("You are asking for too much. Pick a lower number.");
+			exit(1);
+		}
+		numberOfAddresses = (atoi(argv[1]));
+		
+	}
+	strcpy(tempstring, "");
 
 	if (isRpcWorking() != 0) {
 		printf("%s\n", "Something went wrong, exiting.");
@@ -87,18 +122,30 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	for (i = 1; i < 10001; i++) {
-
-		strcpy(rpc_creds_file,
+	strcpy(rpc_creds_file,
 		       "/media/user/c2a5aa0e-7fd6-4bbf-8637-cc47ea80b855/"
 		       "monero-cli/monero-x86_64-linux-gnu-v0.17.3.0/monero-wallet-rpc.18083"
 		       ".login");
+
+
+	for (i = 1; i < (numberOfAddresses + 1); i++) {
 
 		makeNewDir();
 
 		get_newPaymentId();
 
-		getaddress(rpc_creds_file, newPaymentId);
+		fp = fopen(rpc_creds_file, "r");
+		if (!fread(buffer, 31, 1, fp))
+			exit(1);
+		fclose(fp);
+		buffer[31] = '\0';
+
+		fetchIt(buffer);
+
+		parsed_json = json_tokener_parse(curlItResult);
+		json_object_object_get_ex(parsed_json, "result", &result);
+		json_object_object_get_ex(result, "integrated_address", &address);
+		strcpy(newMoneroAddress, json_object_get_string(address));
 
 		strcpy(tempstring, "INSERT INTO UnusedPaymentData VALUES(\'");
 		sprintf(str, "%08d", i);
@@ -158,7 +205,6 @@ int isRpcWorking()
 
 int get_newPaymentId()
 {
-
 	unsigned long long result = 0ULL;
 	int i, rc, leftOver;
 	char choices[17] = "0123456789abcedf";
@@ -175,64 +221,6 @@ int get_newPaymentId()
 	}
 	id[16] = '\0';
 	strcpy(newPaymentId, id);
-	return (0);
-}
-
-int getaddress(char *rpc_creds, char *newPaymentId)
-{
-
-	FILE *fp;
-	char curlcommand[1024];
-
-	int i;
-	char buffer[1024];
-	struct json_object *parsed_json;
-	struct json_object *result;
-	struct json_object *address;
-	char temp[1];
-
-	fp = fopen(rpc_creds, "r");
-	if (!fread(buffer, 31, 1, fp))
-		exit(1);
-	fclose(fp);
-	buffer[31] = '\0';
-
-	strcpy(curlcommand, "curl --silent -u ");
-	strcat(curlcommand, buffer);
-	strcat(curlcommand, " --digest http://127.0.0.1:18083/json_rpc "
-	       "-d '{\"jsonrpc\":\"2.0\",\"id\":\"0\",\"method\":\"\'ma"
-	       "ke_integrated_address\'\",\"params\":\'\"{\\\"payment_i"
-	       "d\\\":\\\"");
-	strcat(curlcommand, newPaymentId);
-	strcat(curlcommand,
-	       "\\\"}\"\'}\' -H \'Content-Type: application/json\' >"
-	       " /dev/shm/result.json");
-
-	if (system(curlcommand))
-		exit(1);
-
-	strcpy(buffer, "");
-
-	fp = fopen("/dev/shm/result.json", "r");
-	if (fp == NULL) {
-		printf("Failed to open temp curl file.");
-		exit(1);
-	}
-
-	i = 0;
-	while (fread(temp, 1, 1, fp)) {
-		buffer[i] = temp[0];
-		i++;
-	}
-	buffer[i] = '\0';
-	fclose(fp);
-
-	remove("/dev/shm/result.json");
-	parsed_json = json_tokener_parse(buffer);
-	json_object_object_get_ex(parsed_json, "result", &result);
-	json_object_object_get_ex(result, "integrated_address", &address);
-	strcpy(newMoneroAddress, json_object_get_string(address));
-
 	return (0);
 }
 
@@ -266,5 +254,76 @@ int makeNewDir()
 	strcpy(buffer, randomness);
 	strcpy(newDir, buffer);
 	free(randomness);
+	return 0;
+}
+
+void init_string(struct string *s) {
+  s->len = 0;
+  s->ptr = malloc(s->len+1);
+  if (s->ptr == NULL) {
+    fprintf(stderr, "malloc() failed\n");
+    exit(EXIT_FAILURE);
+  }
+  s->ptr[0] = '\0';
+}
+
+size_t writefunc(void *ptr, size_t size, size_t nmemb, struct string *s)
+{
+  size_t new_len = s->len + size*nmemb;
+  s->ptr = realloc(s->ptr, new_len+1);
+  if (s->ptr == NULL) {
+    fprintf(stderr, "realloc() failed\n");
+    exit(EXIT_FAILURE);
+  }
+  memcpy(s->ptr+s->len, ptr, size*nmemb);
+  s->ptr[new_len] = '\0';
+  s->len = new_len;
+
+  return size*nmemb;
+}
+
+int fetchIt(char rpc_creds[])
+{
+  CURL *curl;
+  CURLcode res;
+  struct curl_slist *headers=NULL;
+ 
+  char postthis[1024] = "{\"jsonrpc\":\"2.0\",\"id\":\"0\",\"method\":\"make_integrated_address\""
+								",\"params\":"
+								"{\"payment_id\":\"";
+	strcat(postthis, newPaymentId);
+	strcat(postthis, "\"}}");
+
+	curl = curl_easy_init();
+	if(curl) {
+
+		struct string s;
+		init_string(&s);
+	
+		headers = curl_slist_append(headers, "Content-Type: application/json");
+		headers = curl_slist_append(headers, "Accept: */*");
+		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+		curl_easy_setopt(curl, CURLOPT_URL, "http://127.0.0.1:18083/json_rpc");
+		curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
+		curl_easy_setopt(curl, CURLOPT_USERPWD, rpc_creds);
+		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postthis);
+ 	    curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)strlen(postthis));
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writefunc);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &s);
+
+		res = curl_easy_perform(curl);
+
+		if(res != CURLE_OK)
+			fprintf(stderr, "curl_easy_perform() failed: %s\n",
+			curl_easy_strerror(res));
+ 
+		strcpy(curlItResult, s.ptr);
+		curlItResult[strlen(s.ptr) + 1] = 0;
+
+
+		free(s.ptr);
+
+		curl_easy_cleanup(curl);
+	}
 	return 0;
 }
