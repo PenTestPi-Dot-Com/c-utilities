@@ -68,6 +68,7 @@ int main(int argc, char *argv[])
 	struct json_object *parsed_json;
 	struct json_object *result;
 	struct json_object *address;
+	char temp[1];
 	int numberOfAddresses = 10000;
 
 	srand(time(NULL));
@@ -126,6 +127,7 @@ int main(int argc, char *argv[])
 		       "/media/user/c2a5aa0e-7fd6-4bbf-8637-cc47ea80b855/"
 		       "monero-cli/monero-x86_64-linux-gnu-v0.17.3.0/monero-wallet-rpc.18083"
 		       ".login");
+	strcat(rpc_creds_file, "0");
 
 
 	for (i = 1; i < (numberOfAddresses + 1); i++) {
