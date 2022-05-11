@@ -1,7 +1,7 @@
 # PenTestPi Utilities
 
 
-This repo host some backend utilities for PenTestPi.com
+This repo hosts some backend utilities for PenTestPi.com
 
 Sqlfs.c makes new transaction ids, Monero integrated addresses and download directories.
 
