@@ -16,7 +16,7 @@
  *
  * However if you have gcc and you just want to try me quick and dirty you can copy/paste:
  *
- * clear; gcc sqlfs.c -ljson-c -lsqlite3 -Wall -Wextra -Wpedantic -O3 -s -m64 -mrdrnd -o sfs && ./sfs
+ * clear; gcc sqlfs.c -ljson-c -lsqlite3 -lcurl -Wall -Wextra -Wpedantic -O3 -s -m64 -mrdrnd -o sfs && ./sfs
  *
  * Break a pinky.
  * 
@@ -42,6 +42,7 @@ int getaddress(char *, char *);
 int makeNewDir();
 int get_newPaymentId();
 int fetchIt(char[]);
+int dumpText(unsigned short, char [], char [], char []);
 
 char curlItResult[1024];
 char newMoneroAddress[1024];
@@ -68,8 +69,7 @@ int main(int argc, char *argv[])
 	struct json_object *parsed_json;
 	struct json_object *result;
 	struct json_object *address;
-	char temp[1];
-	int numberOfAddresses = 10000;
+	int numberOfAddresses = 1;
 
 	srand(time(NULL));
 
@@ -127,8 +127,8 @@ int main(int argc, char *argv[])
 		       "/media/user/c2a5aa0e-7fd6-4bbf-8637-cc47ea80b855/"
 		       "monero-cli/monero-x86_64-linux-gnu-v0.17.3.0/monero-wallet-rpc.18083"
 		       ".login");
-	strcat(rpc_creds_file, "0");
 
+	remove("TextDumpTry.txt");
 
 	for (i = 1; i < (numberOfAddresses + 1); i++) {
 
@@ -144,10 +144,12 @@ int main(int argc, char *argv[])
 
 		fetchIt(buffer);
 
-		parsed_json = json_tokener_parse(curlItResult);
+				parsed_json = json_tokener_parse(curlItResult);
 		json_object_object_get_ex(parsed_json, "result", &result);
 		json_object_object_get_ex(result, "integrated_address", &address);
 		strcpy(newMoneroAddress, json_object_get_string(address));
+
+		dumpText(i, newDir, newPaymentId, newMoneroAddress);
 
 		strcpy(tempstring, "INSERT INTO UnusedPaymentData VALUES(\'");
 		sprintf(str, "%08d", i);
@@ -190,11 +192,10 @@ int isRpcWorking()
 	if (!fgets(buffer, sizeof(buffer), fp)) {
 
 		if (ferror(fp)) {	// case of error before read was completed
-			printf("%s\n",
-			       "I started looking for monero wallet but then something blew up. Quitting");
+			printf("\n\n%s\n\n", "I started looking for monero wallet but then something blew up. Quitting");
 			exit(1);
 		} else {	// case of EOF before anything else was read -- empty file
-			printf("%s\n",
+			printf("\n\n%s\n\n",
 			       "Either you or your operating system renamed monero-wallet-rpc server or "
 			       "it is not running. Without it I can't do my thing. Sorry. ");
 			exit(1);
@@ -329,3 +330,16 @@ int fetchIt(char rpc_creds[])
 	}
 	return 0;
 }
+
+int dumpText( unsigned short counter, char newDirectory[], char newPayId[], char newAdds[]) {
+	
+	FILE *f2 = fopen("TextDumpTry.txt", "a");
+	if (!f2) {
+		puts("Failed to dump text to file");
+		exit(1);
+	}
+	fprintf(f2, "%hu,%s,%s,%s\n", counter, newDirectory, newPayId, newAdds);
+	fclose(f2);
+	return(0);
+}
+
